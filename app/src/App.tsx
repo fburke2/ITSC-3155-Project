@@ -1,9 +1,13 @@
 import Survey from "../../Survey"
+import CourseInformation from "../../CourseInformation"
 
 function App() {
   return (
     <main className="preview-shell">
-      <Survey />
+      <div className="app-content">
+        <Survey />
+        <CourseInformation />
+      </div>
     </main>
   )
 }

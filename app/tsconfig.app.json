@@ -27,5 +27,10 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "../Course_Selection.tsx", "../Survey.tsx"]
+  "include": [
+    "src",
+    "../Course_Selection.tsx",
+    "../Survey.tsx",
+    "../CourseInformation.tsx"
+  ]
 }
