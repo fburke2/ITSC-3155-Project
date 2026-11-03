@@ -1,9 +1,13 @@
-import Course_Selection from "../../Course_Selection"
+import Survey from "../../Survey"
+import CourseInformation from "../../CourseInformation"
 
 function App() {
   return (
     <main className="preview-shell">
-      <Course_Selection />
+      <div className="app-content">
+        <Survey />
+        <CourseInformation />
+      </div>
     </main>
   )
 }

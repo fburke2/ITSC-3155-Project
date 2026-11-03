@@ -1,17 +1,54 @@
 # ITSC-3155-Project
-Repository for final project code and sprints
 
-## Need to Finish these.
-User Story: The first line must follow the format: As a [role], I want to [what] so that [why].
+## Application
 
-1 As a student, use the survey to set degree goals and field interests
-2 As a student, use field interest and class requirement to get course recommendation
-3 As a student, get related career field information, like degree completion time and median salary
-4 As a student, browse alternative course categories outside my primary interests
-5 As a student, manually search for specific course methods or titles
-6 As a student, view illustrative program-path metrics for a selected course
-7 As a student, reset my demo inputs to start the survey path over from scratch
-8 As a student, navigate back to modify my primary interests using the edit action
-9 As a student, differentiate between estimated sample data and actual degree paths
-10 As a student, use the clear/reset feature to clear my current category selections
+A React and TypeScript course-selection prototype for students. Students can set a degree goal and areas of interest, receive course recommendations, search and filter the sample course list, and view illustrative program-path information for a selected course. Survey responses are stored in the current browser for demonstration purposes.
 
+Course credits, semesters, and salary figures are sample estimates only. They are not verified degree requirements or salary averages.
+
+## Install
+
+Requirements: Node.js LTS and npm.
+
+From the repository root, install the app dependencies:
+
+```powershell
+cd app
+npm ci
+```
+
+## Run Locally
+
+From the `app` directory, start the Vite development server:
+
+```powershell
+npm run dev
+```
+
+Open the local URL printed by Vite, usually `http://localhost:5173/`.
+
+On Windows, you can also run `run-app.cmd` from the repository root. It installs dependencies if needed and starts the app.
+
+## Implemented Features
+
+- Survey for a degree goal and one or more areas of interest, with edit and reset actions.
+- Course recommendations based on survey interests.
+- Course category filtering, case-insensitive search, and keyboard-accessible selection.
+- Course information panel with illustrative sample credits, semesters, and salary when available.
+- Browser-local survey and course-selection state for the prototype.
+
+## Test
+
+Run the TypeScript check and production build from the `app` directory:
+
+```powershell
+npm run build
+```
+
+Manually test the app in the browser:
+
+1. Choose a degree goal, select at least one interest, and submit the survey. Confirm the summary and recommendations appear.
+2. Edit the survey and change an interest. Confirm the recommendations update; reload the page and confirm the survey is retained in that browser.
+3. Use the category selector and course search. Select a course with the mouse, then repeat using the arrow keys and Enter.
+4. Confirm the course information panel updates with the selected course and shows sample metrics where available. Courses without sample metrics should say “Not provided.”
+5. Reset the survey and clear the course filters/selection. Confirm the initial empty states return.

@@ -1,0 +1,156 @@
+.survey-flow {
+  display: grid;
+  gap: 20px;
+}
+
+.survey-panel {
+  display: grid;
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid #eeeeee;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.survey-header,
+.survey-form,
+.survey-complete,
+.survey-complete-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.survey-header h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.survey-header p,
+.survey-complete-copy span {
+  margin: 0;
+  color: #333333;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.survey-header .survey-note {
+  color: #757575;
+  font-size: 13px;
+}
+
+.survey-field {
+  display: grid;
+  gap: 6px;
+}
+
+.survey-field label,
+.interest-fieldset legend {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.survey-field select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #000000;
+  font: inherit;
+}
+
+.interest-fieldset {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.interest-fieldset legend {
+  margin-bottom: 10px;
+  padding: 0;
+}
+
+.interest-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.interest-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.interest-option input {
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+  accent-color: #000000;
+}
+
+.survey-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.survey-primary,
+.survey-secondary {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid #000000;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.survey-primary {
+  background: #000000;
+  color: #ffffff;
+}
+
+.survey-secondary {
+  background: #ffffff;
+  color: #000000;
+}
+
+.survey-error {
+  min-height: 18px;
+  margin: 0;
+  color: #a32121;
+  font-size: 13px;
+}
+
+.survey-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.survey-tag {
+  padding: 4px 8px;
+  border: 1px solid #eeeeee;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.12);
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .interest-options {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,82 @@
+.course-info-panel {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #eeeeee;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #000000;
+}
+
+.course-info-panel h2,
+.course-info-panel p {
+  margin: 0;
+}
+
+.course-info-panel h2 {
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.course-info-empty,
+.course-info-summary,
+.course-info-disclaimer {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.course-info-empty {
+  color: #757575;
+}
+
+.course-info-summary {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  background: rgba(127, 127, 127, 0.08);
+}
+
+.course-info-summary span {
+  color: #333333;
+}
+
+.course-info-summary .course-info-estimate-label {
+  color: #000000;
+  font-weight: 600;
+}
+
+.course-info-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.course-info-metric {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.course-info-metric span {
+  color: #555555;
+  font-size: 13px;
+}
+
+.course-info-metric strong {
+  font-size: 15px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.course-info-disclaimer {
+  color: #757575;
+  font-size: 12px;
+}
