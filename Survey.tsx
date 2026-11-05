@@ -1,6 +1,9 @@
 import { useId, useState, type FormEvent } from "react"
-import Course_Selection from "./Course_Selection"
 import "./app/src/Survey.css"
+
+interface SurveyProps {
+  onComplete?: () => void
+}
 
 interface SurveyData {
   version: 1
@@ -67,7 +70,7 @@ function publishSurvey(data: SurveyData | null) {
   )
 }
 
-export default function Survey() {
+export default function Survey({ onComplete }: SurveyProps) {
   const degreeGoalId = useId()
   const [surveyData, setSurveyData] = useState<SurveyData | null>(() =>
     typeof window === "undefined" ? null : readSurvey()
@@ -105,6 +108,7 @@ export default function Survey() {
     setSurveyData(nextSurvey)
     setIsEditing(false)
     setErrorMessage("")
+    onComplete?.()
   }
 
   function handleReset() {
@@ -117,114 +121,110 @@ export default function Survey() {
   }
 
   return (
-    <div className="survey-flow">
-      <section className="survey-panel" aria-labelledby="survey-title">
-        <header className="survey-header">
-          <h1 id="survey-title">Find your direction</h1>
-          <p>
-            Answer two quick questions to explore degree goals and interests.
-          </p>
-          <p className="survey-note">
-            Prototype note: responses are stored only in this browser for demo
-            purposes.
-          </p>
-        </header>
+    <section className="survey-panel" aria-labelledby="survey-title">
+      <header className="survey-header">
+        <h1 id="survey-title">Find your direction</h1>
+        <p>
+          Answer two quick questions to explore degree goals and interests.
+        </p>
+        <p className="survey-note">
+          Prototype note: responses are stored only in this browser for demo
+          purposes.
+        </p>
+      </header>
 
-        {isEditing ? (
-          <form className="survey-form" onSubmit={handleSubmit}>
-            <div className="survey-field">
-              <label htmlFor={degreeGoalId}>What is your degree goal?</label>
-              <select
-                id={degreeGoalId}
-                required
-                value={degreeGoal}
-                onChange={(event) => setDegreeGoal(event.target.value)}
-              >
-                <option value="" disabled>
-                  Select a degree goal
+      {isEditing ? (
+        <form className="survey-form" onSubmit={handleSubmit}>
+          <div className="survey-field">
+            <label htmlFor={degreeGoalId}>What is your degree goal?</label>
+            <select
+              id={degreeGoalId}
+              required
+              value={degreeGoal}
+              onChange={(event) => setDegreeGoal(event.target.value)}
+            >
+              <option value="" disabled>
+                Select a degree goal
+              </option>
+              {degreeGoals.map((goal) => (
+                <option key={goal} value={goal}>
+                  {goal}
                 </option>
-                {degreeGoals.map((goal) => (
-                  <option key={goal} value={goal}>
-                    {goal}
-                  </option>
-                ))}
-              </select>
-            </div>
+              ))}
+            </select>
+          </div>
 
-            <fieldset className="interest-fieldset">
-              <legend>Which fields interest you?</legend>
-              <div className="interest-options">
-                {interestOptions.map((option) => (
-                  <label className="interest-option" key={option.value}>
-                    <input
-                      type="checkbox"
-                      checked={interests.includes(option.value)}
-                      onChange={() => toggleInterest(option.value)}
-                    />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+          <fieldset className="interest-fieldset">
+            <legend>Which fields interest you?</legend>
+            <div className="interest-options">
+              {interestOptions.map((option) => (
+                <label className="interest-option" key={option.value}>
+                  <input
+                    type="checkbox"
+                    checked={interests.includes(option.value)}
+                    onChange={() => toggleInterest(option.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
-            <div className="survey-actions">
-              <button className="survey-primary" type="submit">
-                {surveyData ? "Save changes" : "Show my recommendations"}
-              </button>
-              {surveyData ? (
-                <button
-                  className="survey-secondary"
-                  type="button"
-                  onClick={() => {
-                    setDegreeGoal(surveyData.degreeGoal)
-                    setInterests(surveyData.interests)
-                    setIsEditing(false)
-                    setErrorMessage("")
-                  }}
-                >
-                  Cancel
-                </button>
-              ) : null}
-            </div>
-            <p className="survey-error" aria-live="polite">
-              {errorMessage}
-            </p>
-          </form>
-        ) : surveyData ? (
-          <div className="survey-complete" aria-live="polite">
-            <div className="survey-complete-copy">
-              <strong>Survey complete</strong>
-              <span>{surveyData.degreeGoal}</span>
-              <div className="survey-tags">
-                {surveyData.interests.map((interest) => (
-                  <span className="survey-tag" key={interest}>
-                    {interestOptions.find((option) => option.value === interest)
-                      ?.label ?? interest}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="survey-actions">
-              <button
-                className="survey-primary"
-                type="button"
-                onClick={() => setIsEditing(true)}
-              >
-                Edit survey
-              </button>
+          <div className="survey-actions">
+            <button className="survey-primary" type="submit">
+              {surveyData ? "Save changes" : "Show my recommendations"}
+            </button>
+            {surveyData ? (
               <button
                 className="survey-secondary"
                 type="button"
-                onClick={handleReset}
+                onClick={() => {
+                  setDegreeGoal(surveyData.degreeGoal)
+                  setInterests(surveyData.interests)
+                  setIsEditing(false)
+                  setErrorMessage("")
+                }}
               >
-                Reset
+                Cancel
               </button>
+            ) : null}
+          </div>
+          <p className="survey-error" aria-live="polite">
+            {errorMessage}
+          </p>
+        </form>
+      ) : surveyData ? (
+        <div className="survey-complete" aria-live="polite">
+          <div className="survey-complete-copy">
+            <strong>Survey complete</strong>
+            <span>{surveyData.degreeGoal}</span>
+            <div className="survey-tags">
+              {surveyData.interests.map((interest) => (
+                <span className="survey-tag" key={interest}>
+                  {interestOptions.find((option) => option.value === interest)
+                    ?.label ?? interest}
+                </span>
+              ))}
             </div>
           </div>
-        ) : null}
-      </section>
-
-      <Course_Selection />
-    </div>
+          <div className="survey-actions">
+            <button
+              className="survey-primary"
+              type="button"
+              onClick={() => setIsEditing(true)}
+            >
+              Edit survey
+            </button>
+            <button
+              className="survey-secondary"
+              type="button"
+              onClick={handleReset}
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </section>
   )
 }
