@@ -10,18 +10,16 @@ import {
     useRef,
     useState,
 } from "react"
+import {
+    readPersistedSurvey,
+    saveCourseSelection,
+    type CourseSelectionData,
+} from "./app/src/persistence"
 
 interface CourseOption {
     name: string
     category: string
     value: string
-}
-
-interface CourseSelectionStoredData {
-    version: number
-    value: string
-    name: string
-    category: string
 }
 
 interface SurveyPrototypeStoredData {
@@ -64,8 +62,6 @@ interface Course_SelectionProps {
     style?: CSSProperties
 }
 
-const SURVEY_STORAGE_VERSION = 1
-const SURVEY_STORAGE_KEY = `surveyPrototype.v${SURVEY_STORAGE_VERSION}`
 const COURSE_SELECTION_STORAGE_VERSION = 1
 const COURSE_SELECTION_STORAGE_KEY = `courseSelection.v${COURSE_SELECTION_STORAGE_VERSION}`
 
@@ -92,7 +88,7 @@ function isValidSurveyData(value: unknown): value is SurveyPrototypeStoredData {
     if (!value || typeof value !== "object") return false
     const data = value as Partial<SurveyPrototypeStoredData>
     return (
-        data.version === SURVEY_STORAGE_VERSION &&
+        data.version === 1 &&
         data.completed === true &&
         typeof data.degreeGoal === "string" &&
         Array.isArray(data.interests) &&
@@ -293,37 +289,6 @@ export default function Course_Selection(props: Course_SelectionProps) {
     useEffect(() => {
         if (typeof window === "undefined") return
 
-        const readFromStorage = (): SurveyPrototypeStoredData | null => {
-            try {
-                const raw = window.localStorage.getItem(SURVEY_STORAGE_KEY)
-                if (!raw) return null
-                const parsed: unknown = JSON.parse(raw)
-                return isValidSurveyData(parsed) ? parsed : null
-            } catch (_error) {
-                return null
-            }
-        }
-
-        startTransition(() => {
-            setSurveyData(readFromStorage())
-        })
-
-        const handleStorage = (event: StorageEvent) => {
-            if (event.key !== SURVEY_STORAGE_KEY) return
-            if (!event.newValue) {
-                startTransition(() => setSurveyData(null))
-                return
-            }
-            try {
-                const parsed: unknown = JSON.parse(event.newValue)
-                startTransition(() =>
-                    setSurveyData(isValidSurveyData(parsed) ? parsed : null)
-                )
-            } catch (_error) {
-                startTransition(() => setSurveyData(null))
-            }
-        }
-
         const handlePrototypeEvent = (event: Event) => {
             const custom = event as CustomEvent<SurveyPrototypeUpdatedDetail>
             const payload = custom.detail?.data
@@ -339,24 +304,29 @@ export default function Course_Selection(props: Course_SelectionProps) {
                 })
                 return
             }
-            startTransition(() => {
-                setSurveyData(readFromStorage())
+            void readPersistedSurvey().then((data) => {
+                startTransition(() => setSurveyData(data))
             })
         }
 
-        window.addEventListener("storage", handleStorage)
         window.addEventListener(
             "surveyPrototypeUpdated",
             handlePrototypeEvent as EventListener
         )
 
         return () => {
-            window.removeEventListener("storage", handleStorage)
             window.removeEventListener(
                 "surveyPrototypeUpdated",
                 handlePrototypeEvent as EventListener
             )
         }
+    }, [])
+
+    useEffect(() => {
+        if (typeof window === "undefined") return
+        void readPersistedSurvey().then((data) => {
+            startTransition(() => setSurveyData(data))
+        })
     }, [])
 
     useEffect(() => {
@@ -417,23 +387,36 @@ export default function Course_Selection(props: Course_SelectionProps) {
                 return
             }
 
-            const payload: CourseSelectionStoredData = {
-                version: COURSE_SELECTION_STORAGE_VERSION,
+            const payload: CourseSelectionData = {
+                version: 1,
                 value: option.value,
                 name: option.name,
                 category: option.category,
             }
-            try {
-                window.localStorage.setItem(
-                    COURSE_SELECTION_STORAGE_KEY,
-                    JSON.stringify(payload)
-                )
-            } catch (_error) {}
-            window.dispatchEvent(
-                new CustomEvent("courseSelectionUpdated", {
-                    detail: { data: payload },
+            void saveCourseSelection(payload)
+                .then(() => {
+                    window.localStorage.setItem(
+                        COURSE_SELECTION_STORAGE_KEY,
+                        JSON.stringify(payload)
+                    )
+                    window.dispatchEvent(
+                        new CustomEvent("courseSelectionUpdated", {
+                            detail: { data: payload },
+                        })
+                    )
                 })
-            )
+                .catch((error: unknown) => {
+                    window.dispatchEvent(
+                        new CustomEvent("courseSelectionPersistenceError", {
+                            detail: {
+                                message:
+                                    error instanceof Error
+                                        ? error.message
+                                        : "Could not save course selection.",
+                            },
+                        })
+                    )
+                })
         },
         []
     )
