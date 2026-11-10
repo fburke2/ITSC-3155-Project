@@ -51,6 +51,6 @@ Manually test the app in the browser:
 1. Complete the survey and submit it. Confirm the app navigates to Course Selection and shows recommendations.
 2. Use the navigation links and browser back/forward buttons to switch between pages. Reload each page and confirm the selected page is retained.
 3. Edit the survey and change an interest. Confirm the recommendations update; reload the page and confirm the survey is retained in that browser.
-4. Use the category selector and course search. Select a course with the mouse, then repeat using the arrow keys and Enter.
+4. Use the category selector and course search. Select a course with the mouse, then repeat using the arrow keys and Enter. Reload the page and confirm the selected course is restored.
 5. Confirm the course information panel updates with the selected course and shows sample metrics where available. Courses without sample metrics should say “Not provided.”
 6. Reset the survey and clear the course filters/selection. Confirm the initial empty states return.

@@ -11,6 +11,8 @@ import {
     useState,
 } from "react"
 import {
+    clearPersistedCourseSelection,
+    readPersistedCourseSelection,
     readPersistedSurvey,
     saveCourseSelection,
     type CourseSelectionData,
@@ -62,8 +64,43 @@ interface Course_SelectionProps {
     style?: CSSProperties
 }
 
-const COURSE_SELECTION_STORAGE_VERSION = 1
-const COURSE_SELECTION_STORAGE_KEY = `courseSelection.v${COURSE_SELECTION_STORAGE_VERSION}`
+const DEFAULT_COURSE_OPTIONS: CourseOption[] = [
+    {
+        name: "Game Development Fundamentals",
+        category: "Development",
+        value: "game-dev-fundamentals",
+    },
+    {
+        name: "Modern Web Development",
+        category: "Development",
+        value: "web-dev-modern",
+    },
+    {
+        name: "Software Engineering Foundations",
+        category: "Development",
+        value: "software-eng-foundations",
+    },
+    {
+        name: "General Programming Basics",
+        category: "Development",
+        value: "general-programming-basics",
+    },
+    {
+        name: "Science Communication Essentials",
+        category: "Science",
+        value: "science-communication",
+    },
+    {
+        name: "English Literature Survey",
+        category: "English",
+        value: "english-literature-survey",
+    },
+    {
+        name: "Teaching & Education Methods",
+        category: "Education",
+        value: "teaching-education-methods",
+    },
+]
 
 function normalizeText(value: string): string {
     return value
@@ -98,43 +135,7 @@ function isValidSurveyData(value: unknown): value is SurveyPrototypeStoredData {
 
 export default function Course_Selection(props: Course_SelectionProps) {
     const {
-        options = [
-            {
-                name: "Game Development Fundamentals",
-                category: "Development",
-                value: "game-dev-fundamentals",
-            },
-            {
-                name: "Modern Web Development",
-                category: "Development",
-                value: "web-dev-modern",
-            },
-            {
-                name: "Software Engineering Foundations",
-                category: "Development",
-                value: "software-eng-foundations",
-            },
-            {
-                name: "General Programming Basics",
-                category: "Development",
-                value: "general-programming-basics",
-            },
-            {
-                name: "Science Communication Essentials",
-                category: "Science",
-                value: "science-communication",
-            },
-            {
-                name: "English Literature Survey",
-                category: "English",
-                value: "english-literature-survey",
-            },
-            {
-                name: "Teaching & Education Methods",
-                category: "Education",
-                value: "teaching-education-methods",
-            },
-        ],
+        options = DEFAULT_COURSE_OPTIONS,
         categoryLabel = "Category",
         allCategoriesLabel = "All categories",
         searchLabel = "Search Course",
@@ -168,9 +169,11 @@ export default function Course_Selection(props: Course_SelectionProps) {
     const [isOpen, setIsOpen] = useState<boolean>(false)
     const [highlightedIndex, setHighlightedIndex] = useState<number>(-1)
     const [selectedValue, setSelectedValue] = useState<string>("")
+    const [persistenceError, setPersistenceError] = useState("")
     const [surveyData, setSurveyData] =
         useState<SurveyPrototypeStoredData | null>(null)
     const previousSelectedValueRef = useRef<string>("")
+    const hasRestoredCourseSelectionRef = useRef(false)
 
     const normalizedOptions = useMemo(() => {
         const sourceOptions = Array.isArray(options) ? options : []
@@ -235,6 +238,43 @@ export default function Course_Selection(props: Course_SelectionProps) {
             (option) => option.value === selectedValue
         )
     }, [normalizedOptions, selectedValue])
+
+    useEffect(() => {
+        if (hasRestoredCourseSelectionRef.current) return
+
+        let isCurrent = true
+        void readPersistedCourseSelection()
+            .then((savedSelection) => {
+                if (!isCurrent) return
+                if (!savedSelection) {
+                    hasRestoredCourseSelectionRef.current = true
+                    return
+                }
+                const option = normalizedOptions.find(
+                    (item) => item.value === savedSelection.value
+                )
+                if (!option) return
+
+                hasRestoredCourseSelectionRef.current = true
+                startTransition(() => {
+                    setSelectedValue(option.value)
+                    setQuery(option.name)
+                })
+            })
+            .catch((error: unknown) => {
+                if (!isCurrent) return
+                hasRestoredCourseSelectionRef.current = true
+                setPersistenceError(
+                    error instanceof Error
+                        ? error.message
+                        : "Could not load saved course selection."
+                )
+            })
+
+        return () => {
+            isCurrent = false
+        }
+    }, [normalizedOptions])
 
     const activeInterests = useMemo(() => {
         if (!surveyData?.completed) return []
@@ -376,14 +416,22 @@ export default function Course_Selection(props: Course_SelectionProps) {
         (option: CourseOption | null) => {
             if (typeof window === "undefined") return
             if (!option) {
-                try {
-                    window.localStorage.removeItem(COURSE_SELECTION_STORAGE_KEY)
-                } catch (_error) {}
-                window.dispatchEvent(
-                    new CustomEvent("courseSelectionUpdated", {
-                        detail: { data: null },
+                void clearPersistedCourseSelection()
+                    .then(() => {
+                        setPersistenceError("")
+                        window.dispatchEvent(
+                            new CustomEvent("courseSelectionUpdated", {
+                                detail: { data: null },
+                            })
+                        )
                     })
-                )
+                    .catch((error: unknown) => {
+                        setPersistenceError(
+                            error instanceof Error
+                                ? error.message
+                                : "Could not clear saved course selection."
+                        )
+                    })
                 return
             }
 
@@ -395,10 +443,7 @@ export default function Course_Selection(props: Course_SelectionProps) {
             }
             void saveCourseSelection(payload)
                 .then(() => {
-                    window.localStorage.setItem(
-                        COURSE_SELECTION_STORAGE_KEY,
-                        JSON.stringify(payload)
-                    )
+                    setPersistenceError("")
                     window.dispatchEvent(
                         new CustomEvent("courseSelectionUpdated", {
                             detail: { data: payload },
@@ -406,6 +451,11 @@ export default function Course_Selection(props: Course_SelectionProps) {
                     )
                 })
                 .catch((error: unknown) => {
+                    setPersistenceError(
+                        error instanceof Error
+                            ? error.message
+                            : "Could not save course selection."
+                    )
                     window.dispatchEvent(
                         new CustomEvent("courseSelectionPersistenceError", {
                             detail: {
@@ -816,6 +866,11 @@ export default function Course_Selection(props: Course_SelectionProps) {
                 <strong>{selectedLabel}</strong>{" "}
                 {selectedOption ? selectedOption.name : selectPromptLabel}
             </div>
+            {persistenceError ? (
+                <p role="alert" style={{ margin: 0, color: "#b42318" }}>
+                    {persistenceError}
+                </p>
+            ) : null}
         </div>
     )
 }

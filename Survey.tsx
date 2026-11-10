@@ -1,5 +1,4 @@
 import { useEffect, useId, useState, type FormEvent } from "react"
-import Course_Selection from "./Course_Selection"
 import "./app/src/Survey.css"
 import {
   clearPersistedSurvey,
@@ -118,15 +117,14 @@ export default function Survey() {
   }
 
   return (
-    <div className="survey-flow">
-      <section className="survey-panel" aria-labelledby="survey-title">
+    <section className="survey-panel" aria-labelledby="survey-title">
         <header className="survey-header">
           <h1 id="survey-title">Find your direction</h1>
           <p>
             Answer two quick questions to explore degree goals and interests.
           </p>
           <p className="survey-note">
-            Responses are saved to the development database for this session.
+            Responses are saved in this browser for this prototype.
           </p>
         </header>
 
@@ -222,9 +220,6 @@ export default function Survey() {
             </div>
           </div>
         ) : null}
-      </section>
-
-      <Course_Selection />
-    </div>
+    </section>
   )
 }
