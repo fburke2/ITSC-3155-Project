@@ -170,11 +170,20 @@ export default function CourseInformation() {
 
   const metrics = [
     {
+      label: "Sample annual salary",
+      value:
+        typeof estimate?.salary === "number"
+          ? formatCurrency(estimate.salary, estimate.currency)
+          : NOT_PROVIDED,
+      featured: true,
+    },
+    {
       label: "Credits to complete",
       value:
         typeof estimate?.credits === "number"
           ? `Sample: ${estimate.credits}`
           : NOT_PROVIDED,
+      featured: false,
     },
     {
       label: "Average semesters",
@@ -182,13 +191,7 @@ export default function CourseInformation() {
         typeof estimate?.semesters === "number"
           ? `Sample: ${estimate.semesters}`
           : NOT_PROVIDED,
-    },
-    {
-      label: "Sample annual salary",
-      value:
-        typeof estimate?.salary === "number"
-          ? `Sample: ${formatCurrency(estimate.salary, estimate.currency)}`
-          : NOT_PROVIDED,
+      featured: false,
     },
   ]
 
@@ -209,11 +212,17 @@ export default function CourseInformation() {
 
           <div className="course-info-metrics">
             {metrics.map((metric) => (
-              <article className="course-info-metric" key={metric.label}>
+              <article
+                className={`course-info-metric${metric.featured ? " course-info-metric-featured" : ""}`}
+                key={metric.label}
+              >
                 <span>{metric.label}</span>
                 <strong>{metric.value}</strong>
               </article>
             ))}
+            <a className="course-info-class-link" href="#class-information">
+              View Class Information
+            </a>
           </div>
 
           <p className="course-info-disclaimer">

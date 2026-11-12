@@ -866,6 +866,17 @@ export default function Course_Selection(props: Course_SelectionProps) {
                 <strong>{selectedLabel}</strong>{" "}
                 {selectedOption ? selectedOption.name : selectPromptLabel}
             </div>
+            <p
+                style={{
+                    margin: 0,
+                    color: textColor,
+                    opacity: 0.72,
+                    fontSize: "0.85em",
+                }}
+            >
+                Your selected course is saved in this browser and restored
+                when you return.
+            </p>
             {persistenceError ? (
                 <p role="alert" style={{ margin: 0, color: "#b42318" }}>
                     {persistenceError}

@@ -32,19 +32,24 @@ On Windows, you can also run `run-app.cmd` from the repository root. It installs
 ## Implemented Features
 
 - Survey for a degree goal and one or more areas of interest, with edit and reset actions.
+- Graduate planning and certification follow-up prompts for degree type, with salary asked only when the user has a degree.
+- Degree status question with a salary range follow-up for users who already have a degree; submitting the survey opens Course Selection.
 - Navigation between the Survey and Course Selection pages, including direct links and browser back/forward navigation.
 - Course recommendations based on survey interests.
 - Course category filtering, case-insensitive search, and keyboard-accessible selection.
-- Course information panel with illustrative sample credits, semesters, and salary when available.
-- Browser-local survey and course-selection state for the prototype.
+- Course information panel with a prominent sample annual salary, credits, semesters, and a link to Class Information when available.
+- Survey responses and selected course are saved in this browser and restored when you return.
 
 ## Test
 
-Run the TypeScript check and production build from the `app` directory:
+Run the Mocha feature tests and TypeScript check/production build from the `app` directory:
 
 ```powershell
+npm test
 npm run build
 ```
+
+The Mocha suite uses jsdom and React Testing Library to check survey prompts and navigation, course filtering and browser retention, course metrics, and class information. Vite loads the app components during tests so they use the same TSX and CSS handling as the application.
 
 Manually test the app in the browser:
 

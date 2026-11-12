@@ -2,7 +2,10 @@ export interface SurveyData {
   version: 1
   completed: true
   degreeGoal: string
+  hasDegree?: boolean
   interests: string[]
+  averageAnnualSalary?: string
+  plannedDegree?: string
 }
 
 export interface CourseSelectionData {
@@ -22,8 +25,13 @@ function isSurveyData(value: unknown): value is SurveyData {
     data.version === 1 &&
     data.completed === true &&
     typeof data.degreeGoal === "string" &&
+    (data.hasDegree === undefined || typeof data.hasDegree === "boolean") &&
     Array.isArray(data.interests) &&
-    data.interests.every((interest) => typeof interest === "string")
+    data.interests.every((interest) => typeof interest === "string") &&
+    (data.averageAnnualSalary === undefined ||
+      typeof data.averageAnnualSalary === "string") &&
+    (data.plannedDegree === undefined ||
+      typeof data.plannedDegree === "string")
   )
 }
 
