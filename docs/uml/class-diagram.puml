@@ -1,0 +1,62 @@
+@startuml
+!pragma layout smetana
+title Course Explorer - Persistent Domain Model
+hide methods
+skinparam classAttributeIconSize 0
+
+class User {
+  +id: Int <<PK>>
+  +email: String <<UNIQUE, NOT NULL>>
+  +passwordHash: String <<NOT NULL>>
+  +createdAt: DateTime
+  +updatedAt: DateTime
+}
+
+class SurveyResponse {
+  +id: Int <<PK>>
+  +userId: Int <<FK, NOT NULL>>
+  +degreeGoal: String <<NOT NULL>>
+  +completedAt: DateTime
+}
+
+class Interest {
+  +id: Int <<PK>>
+  +name: String <<UNIQUE, NOT NULL>>
+}
+
+class SurveyInterest {
+  +surveyResponseId: Int <<PK, FK>>
+  +interestId: Int <<PK, FK>>
+}
+
+class Course {
+  +id: Int <<PK>>
+  +value: String <<UNIQUE, NOT NULL>>
+  +code: String <<UNIQUE>>
+  +name: String <<NOT NULL>>
+  +category: String <<NOT NULL>>
+  +creditHours: Decimal
+  +creditsToComplete: Int
+  +semesters: Int
+  +salary: Decimal
+  +currency: String
+}
+
+class CourseSelection {
+  +id: Int <<PK>>
+  +userId: Int <<FK, UNIQUE>>
+  +courseId: Int <<FK>>
+  +selectedAt: DateTime
+}
+
+User "1" -- "0..*" SurveyResponse : submits
+SurveyResponse "1" -- "0..*" SurveyInterest : includes
+Interest "1" -- "0..*" SurveyInterest : selected by
+User "1" -- "0..1" CourseSelection : saves
+Course "1" -- "0..*" CourseSelection : is selected
+
+note right of SurveyInterest
+  Composite primary key:
+  (surveyResponseId, interestId)
+end note
+@enduml

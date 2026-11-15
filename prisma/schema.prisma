@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int             @id @default(autoincrement())
+  email           String          @unique @db.VarChar(255)
+  passwordHash    String          @db.VarChar(255)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  surveyResponses SurveyResponse[]
+  courseSelection CourseSelection?
+}
+
+model SurveyResponse {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  degreeGoal  String           @db.VarChar(255)
+  completedAt DateTime         @default(now())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interests   SurveyInterest[]
+
+  @@index([userId])
+}
+
+model Interest {
+  id       Int              @id @default(autoincrement())
+  name     String           @unique @db.VarChar(100)
+  surveys  SurveyInterest[]
+}
+
+model SurveyInterest {
+  surveyResponseId Int
+  interestId       Int
+  surveyResponse   SurveyResponse @relation(fields: [surveyResponseId], references: [id], onDelete: Cascade)
+  interest         Interest       @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@id([surveyResponseId, interestId])
+  @@index([interestId])
+}
+
+model Course {
+  id             Int              @id @default(autoincrement())
+  value          String           @unique @db.VarChar(100)
+  code           String?          @unique @db.VarChar(20)
+  name           String           @db.VarChar(255)
+  category       String           @db.VarChar(100)
+  creditHours    Decimal?         @db.Decimal(4, 1)
+  creditsToComplete Int?
+  semesters      Int?
+  salary         Decimal?         @db.Decimal(10, 2)
+  currency       String           @default("USD") @db.Char(3)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  selections     CourseSelection[]
+}
+
+model CourseSelection {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  courseId   Int
+  selectedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  @@index([courseId])
+}

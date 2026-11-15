@@ -40,6 +40,24 @@ On Windows, you can also run `run-app.cmd` from the repository root. It installs
 - Course information panel with a prominent sample annual salary, credits, semesters, and a link to Class Information when available.
 - Survey responses and selected course are saved in this browser and restored when you return.
 
+## Persistence Design
+
+The MySQL persistence design for issue #11 is defined in
+[`prisma/schema.prisma`](prisma/schema.prisma), with the initial migration in
+[`prisma/migrations/20261105110000_initial_persistence/migration.sql`](prisma/migrations/20261105110000_initial_persistence/migration.sql).
+It models accounts, survey responses and interests, the course catalogue, and
+saved course selections.
+
+The PlantUML sources and rendered diagrams are available in
+[`docs/uml/`](docs/uml/):
+
+- [UML class diagram](docs/uml/class-diagram.svg)
+- [UML sequence diagram](docs/uml/sequence-diagram.svg)
+
+For Amazon RDS setup, secure environment configuration, and the team
+connectivity verification procedure, see
+[`docs/database-setup.md`](docs/database-setup.md).
+
 ## Test
 
 Run the Mocha feature tests and TypeScript check/production build from the `app` directory:
