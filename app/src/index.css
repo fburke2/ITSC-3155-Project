@@ -17,13 +17,3 @@ body {
 * {
   box-sizing: border-box;
 }
-
-.preview-shell {
-  width: min(640px, calc(100% - 32px));
-  margin: 64px auto;
-}
-
-.app-content {
-  display: grid;
-  gap: 20px;
-}

@@ -1,21 +1,20 @@
-import { useId, useState, type FormEvent } from "react"
-import Course_Selection from "./Course_Selection"
+import { useEffect, useId, useState, type FormEvent } from "react"
 import "./app/src/Survey.css"
+import {
+  clearPersistedSurvey,
+  readPersistedSurvey,
+  saveSurvey,
+  type SurveyData,
+} from "./app/src/persistence"
 
-interface SurveyData {
-  version: 1
-  completed: true
-  degreeGoal: string
-  interests: string[]
-}
-
-const STORAGE_KEY = "surveyPrototype.v1"
 const SURVEY_UPDATED_EVENT = "surveyPrototypeUpdated"
 
 const degreeGoals = [
   "Explore degree paths and career options",
   "Choose or refine my major",
   "Plan courses toward graduation",
+  "Further course development",
+  "Graduate planning",
 ]
 
 const interestOptions = [
@@ -26,58 +25,94 @@ const interestOptions = [
   { value: "science", label: "Science" },
   { value: "english", label: "English" },
   { value: "teaching", label: "Teaching and education" },
+  { value: "certifications", label: "Certifications" },
 ]
 
-function isSurveyData(value: unknown): value is SurveyData {
-  if (!value || typeof value !== "object") return false
-  const data = value as Partial<SurveyData>
-  return (
-    data.version === 1 &&
-    data.completed === true &&
-    typeof data.degreeGoal === "string" &&
-    Array.isArray(data.interests) &&
-    data.interests.every((interest) => typeof interest === "string")
-  )
-}
+const salaryRanges = [
+  "Under $25,000",
+  "$25,000-$49,999",
+  "$50,000-$74,999",
+  "$75,000-$99,999",
+  "$100,000-$114,999",
+  "$115,000-$129,999",
+  "$130,000-$144,999",
+  "$145,000-$159,999",
+  "$160,000-$174,999",
+  "$175,000-$189,999",
+  "$190,000-$199,999",
+  "$200,000+",
+]
 
-function readSurvey(): SurveyData | null {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
-    if (!stored) return null
-    const parsed: unknown = JSON.parse(stored)
-    return isSurveyData(parsed) ? parsed : null
-  } catch {
-    return null
-  }
-}
+const degreeTypes = [
+  "Certificate",
+  "Associate degree",
+  "Bachelor's degree",
+  "Master's degree",
+  "Doctoral degree",
+  "Professional degree",
+  "Other",
+]
 
 function publishSurvey(data: SurveyData | null) {
-  try {
-    if (data) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-    } else {
-      window.localStorage.removeItem(STORAGE_KEY)
-    }
-  } catch {
-    // Keep the in-memory survey usable when browser storage is unavailable.
-  }
-
   window.dispatchEvent(
     new CustomEvent(SURVEY_UPDATED_EVENT, { detail: { data } })
   )
 }
 
-export default function Survey() {
-  const degreeGoalId = useId()
-  const [surveyData, setSurveyData] = useState<SurveyData | null>(() =>
-    typeof window === "undefined" ? null : readSurvey()
+function needsCareerDetails(degreeGoal: string, interests: string[]) {
+  return (
+    degreeGoal === "Graduate planning" ||
+    interests.includes("certifications")
   )
+}
+
+interface SurveyProps {
+  onComplete?: () => void
+}
+
+export default function Survey({ onComplete }: SurveyProps) {
+  const degreeGoalId = useId()
+  const hasDegreeName = useId()
+  const salaryId = useId()
+  const plannedDegreeId = useId()
+  const [surveyData, setSurveyData] = useState<SurveyData | null>(null)
   const [degreeGoal, setDegreeGoal] = useState(surveyData?.degreeGoal ?? "")
+  const [hasDegree, setHasDegree] = useState<boolean | null>(
+    surveyData?.hasDegree ?? null
+  )
   const [interests, setInterests] = useState<string[]>(
     surveyData?.interests ?? []
   )
+  const [averageAnnualSalary, setAverageAnnualSalary] = useState(
+    surveyData?.averageAnnualSalary ?? ""
+  )
+  const [plannedDegree, setPlannedDegree] = useState(
+    surveyData?.plannedDegree ?? ""
+  )
   const [isEditing, setIsEditing] = useState(!surveyData)
   const [errorMessage, setErrorMessage] = useState("")
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    void readPersistedSurvey()
+      .then((data) => {
+        setSurveyData(data)
+        publishSurvey(data)
+        if (data) {
+          setDegreeGoal(data.degreeGoal)
+          setHasDegree(data.hasDegree ?? null)
+          setInterests(data.interests)
+          setAverageAnnualSalary(data.averageAnnualSalary ?? "")
+          setPlannedDegree(data.plannedDegree ?? "")
+          setIsEditing(false)
+        }
+      })
+      .catch((error: unknown) => {
+        setErrorMessage(
+          error instanceof Error ? error.message : "Could not load saved survey."
+        )
+      })
+  }, [])
 
   function toggleInterest(value: string) {
     setInterests((current) =>
@@ -95,38 +130,88 @@ export default function Survey() {
       return
     }
 
+    if (hasDegree === null) {
+      setErrorMessage("Choose yes or no to indicate whether you have a degree.")
+      return
+    }
+
+    const includeCareerDetails = needsCareerDetails(degreeGoal, interests)
+    const includeSalary = hasDegree
+    if (
+      (includeSalary && !averageAnnualSalary.trim()) ||
+      (includeCareerDetails && !plannedDegree.trim())
+    ) {
+      setErrorMessage(
+        "Complete the required salary range and degree follow-up questions."
+      )
+      return
+    }
+
     const nextSurvey: SurveyData = {
       version: 1,
       completed: true,
       degreeGoal,
+      hasDegree,
       interests,
+      ...(includeSalary
+        ? {
+            averageAnnualSalary: averageAnnualSalary.trim(),
+          }
+        : {}),
+      ...(includeCareerDetails
+        ? { plannedDegree: plannedDegree.trim() }
+        : {}),
     }
-    publishSurvey(nextSurvey)
-    setSurveyData(nextSurvey)
-    setIsEditing(false)
-    setErrorMessage("")
+    void saveSurvey(nextSurvey)
+      .then(() => {
+        publishSurvey(nextSurvey)
+        setSurveyData(nextSurvey)
+        setIsEditing(false)
+        setErrorMessage("")
+        onComplete?.()
+      })
+      .catch((error: unknown) => {
+        setErrorMessage(
+          error instanceof Error ? error.message : "Could not save survey."
+        )
+      })
   }
 
   function handleReset() {
-    publishSurvey(null)
-    setSurveyData(null)
-    setDegreeGoal("")
-    setInterests([])
-    setIsEditing(true)
-    setErrorMessage("")
+    void clearPersistedSurvey()
+      .then(() => {
+        publishSurvey(null)
+        window.dispatchEvent(
+          new CustomEvent("courseSelectionUpdated", { detail: { data: null } })
+        )
+        setSurveyData(null)
+        setDegreeGoal("")
+        setHasDegree(null)
+        setInterests([])
+        setAverageAnnualSalary("")
+        setPlannedDegree("")
+        setIsEditing(true)
+        setErrorMessage("")
+      })
+      .catch((error: unknown) => {
+        setErrorMessage(
+          error instanceof Error ? error.message : "Could not reset survey."
+        )
+      })
   }
 
+  const includeCareerDetails = needsCareerDetails(degreeGoal, interests)
+  const showSalaryRange = hasDegree === true
+
   return (
-    <div className="survey-flow">
-      <section className="survey-panel" aria-labelledby="survey-title">
+    <section className="survey-panel" aria-labelledby="survey-title">
         <header className="survey-header">
           <h1 id="survey-title">Find your direction</h1>
           <p>
-            Answer two quick questions to explore degree goals and interests.
+            Share your degree goals and interests to explore recommendations.
           </p>
           <p className="survey-note">
-            Prototype note: responses are stored only in this browser for demo
-            purposes.
+            Responses are saved in this browser for this prototype.
           </p>
         </header>
 
@@ -152,6 +237,34 @@ export default function Survey() {
             </div>
 
             <fieldset className="interest-fieldset">
+              <legend>Do you have a degree?</legend>
+              <div className="interest-options">
+                <label className="interest-option">
+                  <input
+                    type="radio"
+                    name={hasDegreeName}
+                    value="yes"
+                    required
+                    checked={hasDegree === true}
+                    onChange={() => setHasDegree(true)}
+                  />
+                  <span>Yes</span>
+                </label>
+                <label className="interest-option">
+                  <input
+                    type="radio"
+                    name={hasDegreeName}
+                    value="no"
+                    required
+                    checked={hasDegree === false}
+                    onChange={() => setHasDegree(false)}
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset className="interest-fieldset">
               <legend>Which fields interest you?</legend>
               <div className="interest-options">
                 {interestOptions.map((option) => (
@@ -167,6 +280,57 @@ export default function Survey() {
               </div>
             </fieldset>
 
+            {showSalaryRange || includeCareerDetails ? (
+              <div className="survey-follow-up">
+                {showSalaryRange ? (
+                  <div className="survey-field">
+                    <label htmlFor={salaryId}>
+                      What is your average annual salary range?
+                    </label>
+                    <select
+                      id={salaryId}
+                      required
+                      value={averageAnnualSalary}
+                      onChange={(event) =>
+                        setAverageAnnualSalary(event.target.value)
+                      }
+                    >
+                      <option value="" disabled>
+                        Select a salary range
+                      </option>
+                      {salaryRanges.map((range) => (
+                        <option key={range} value={range}>
+                          {range}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+                {includeCareerDetails ? (
+                  <div className="survey-field">
+                    <label htmlFor={plannedDegreeId}>
+                      What type of degree are you pursuing or planning?
+                    </label>
+                    <select
+                      id={plannedDegreeId}
+                      required
+                      value={plannedDegree}
+                      onChange={(event) => setPlannedDegree(event.target.value)}
+                    >
+                      <option value="" disabled>
+                        Select a degree type
+                      </option>
+                      {degreeTypes.map((degree) => (
+                        <option key={degree} value={degree}>
+                          {degree}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="survey-actions">
               <button className="survey-primary" type="submit">
                 {surveyData ? "Save changes" : "Show my recommendations"}
@@ -177,7 +341,12 @@ export default function Survey() {
                   type="button"
                   onClick={() => {
                     setDegreeGoal(surveyData.degreeGoal)
+                    setHasDegree(surveyData.hasDegree ?? null)
                     setInterests(surveyData.interests)
+                    setAverageAnnualSalary(
+                      surveyData.averageAnnualSalary ?? ""
+                    )
+                    setPlannedDegree(surveyData.plannedDegree ?? "")
                     setIsEditing(false)
                     setErrorMessage("")
                   }}
@@ -195,6 +364,18 @@ export default function Survey() {
             <div className="survey-complete-copy">
               <strong>Survey complete</strong>
               <span>{surveyData.degreeGoal}</span>
+              {surveyData.hasDegree !== undefined ? (
+                <span>Has a degree: {surveyData.hasDegree ? "Yes" : "No"}</span>
+              ) : null}
+              {surveyData.hasDegree === true &&
+              surveyData.averageAnnualSalary !== undefined ? (
+                <span>
+                  Average annual salary: {surveyData.averageAnnualSalary}
+                </span>
+              ) : null}
+              {surveyData.plannedDegree ? (
+                <span>Planned degree: {surveyData.plannedDegree}</span>
+              ) : null}
               <div className="survey-tags">
                 {surveyData.interests.map((interest) => (
                   <span className="survey-tag" key={interest}>
@@ -222,9 +403,6 @@ export default function Survey() {
             </div>
           </div>
         ) : null}
-      </section>
-
-      <Course_Selection />
-    </div>
+    </section>
   )
 }

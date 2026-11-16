@@ -36,6 +36,8 @@ if not exist "%APP_DIR%\node_modules\.bin\vite.cmd" (
     popd
 )
 
+start "ITSC-3155 Persistence API" /D "%APP_DIR%" cmd /c "npm.cmd run api"
+
 pushd "%APP_DIR%"
 call npm.cmd run dev -- --host 127.0.0.1
 set "APP_EXIT_CODE=%ERRORLEVEL%"

@@ -1,0 +1,32 @@
+@startuml
+title Save Survey and Course Selection
+autonumber
+
+actor Student
+boundary "Survey / Course Selection UI" as UI
+control "Persistence Service" as Service
+entity "Prisma ORM" as ORM
+database "MySQL" as DB
+
+Student -> UI: Complete degree goal and interests
+UI -> Service: saveSurvey(userId, degreeGoal, interests)
+Service -> ORM: upsert SurveyResponse
+ORM -> DB: INSERT SurveyResponse
+DB --> ORM: surveyResponse id
+loop each selected interest
+  Service -> ORM: connect Interest to SurveyResponse
+  ORM -> DB: INSERT SurveyInterest
+  DB --> ORM: association saved
+end
+ORM --> Service: saved survey
+Service --> UI: show recommendations
+
+Student -> UI: Select a course
+UI -> Service: saveCourseSelection(userId, courseId)
+Service -> ORM: upsert CourseSelection
+ORM -> DB: INSERT or UPDATE CourseSelection
+DB --> ORM: selection saved
+ORM --> Service: saved selection
+Service --> UI: show course information
+UI --> Student: Display persistent selection
+@enduml

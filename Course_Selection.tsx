@@ -10,18 +10,18 @@ import {
     useRef,
     useState,
 } from "react"
+import {
+    clearPersistedCourseSelection,
+    readPersistedCourseSelection,
+    readPersistedSurvey,
+    saveCourseSelection,
+    type CourseSelectionData,
+} from "./app/src/persistence"
 
 interface CourseOption {
     name: string
     category: string
     value: string
-}
-
-interface CourseSelectionStoredData {
-    version: number
-    value: string
-    name: string
-    category: string
 }
 
 interface SurveyPrototypeStoredData {
@@ -64,10 +64,43 @@ interface Course_SelectionProps {
     style?: CSSProperties
 }
 
-const SURVEY_STORAGE_VERSION = 1
-const SURVEY_STORAGE_KEY = `surveyPrototype.v${SURVEY_STORAGE_VERSION}`
-const COURSE_SELECTION_STORAGE_VERSION = 1
-const COURSE_SELECTION_STORAGE_KEY = `courseSelection.v${COURSE_SELECTION_STORAGE_VERSION}`
+const DEFAULT_COURSE_OPTIONS: CourseOption[] = [
+    {
+        name: "Game Development Fundamentals",
+        category: "Development",
+        value: "game-dev-fundamentals",
+    },
+    {
+        name: "Modern Web Development",
+        category: "Development",
+        value: "web-dev-modern",
+    },
+    {
+        name: "Software Engineering Foundations",
+        category: "Development",
+        value: "software-eng-foundations",
+    },
+    {
+        name: "General Programming Basics",
+        category: "Development",
+        value: "general-programming-basics",
+    },
+    {
+        name: "Science Communication Essentials",
+        category: "Science",
+        value: "science-communication",
+    },
+    {
+        name: "English Literature Survey",
+        category: "English",
+        value: "english-literature-survey",
+    },
+    {
+        name: "Teaching & Education Methods",
+        category: "Education",
+        value: "teaching-education-methods",
+    },
+]
 
 function normalizeText(value: string): string {
     return value
@@ -92,7 +125,7 @@ function isValidSurveyData(value: unknown): value is SurveyPrototypeStoredData {
     if (!value || typeof value !== "object") return false
     const data = value as Partial<SurveyPrototypeStoredData>
     return (
-        data.version === SURVEY_STORAGE_VERSION &&
+        data.version === 1 &&
         data.completed === true &&
         typeof data.degreeGoal === "string" &&
         Array.isArray(data.interests) &&
@@ -102,43 +135,7 @@ function isValidSurveyData(value: unknown): value is SurveyPrototypeStoredData {
 
 export default function Course_Selection(props: Course_SelectionProps) {
     const {
-        options = [
-            {
-                name: "Game Development Fundamentals",
-                category: "Development",
-                value: "game-dev-fundamentals",
-            },
-            {
-                name: "Modern Web Development",
-                category: "Development",
-                value: "web-dev-modern",
-            },
-            {
-                name: "Software Engineering Foundations",
-                category: "Development",
-                value: "software-eng-foundations",
-            },
-            {
-                name: "General Programming Basics",
-                category: "Development",
-                value: "general-programming-basics",
-            },
-            {
-                name: "Science Communication Essentials",
-                category: "Science",
-                value: "science-communication",
-            },
-            {
-                name: "English Literature Survey",
-                category: "English",
-                value: "english-literature-survey",
-            },
-            {
-                name: "Teaching & Education Methods",
-                category: "Education",
-                value: "teaching-education-methods",
-            },
-        ],
+        options = DEFAULT_COURSE_OPTIONS,
         categoryLabel = "Category",
         allCategoriesLabel = "All categories",
         searchLabel = "Search Course",
@@ -172,9 +169,11 @@ export default function Course_Selection(props: Course_SelectionProps) {
     const [isOpen, setIsOpen] = useState<boolean>(false)
     const [highlightedIndex, setHighlightedIndex] = useState<number>(-1)
     const [selectedValue, setSelectedValue] = useState<string>("")
+    const [persistenceError, setPersistenceError] = useState("")
     const [surveyData, setSurveyData] =
         useState<SurveyPrototypeStoredData | null>(null)
     const previousSelectedValueRef = useRef<string>("")
+    const hasRestoredCourseSelectionRef = useRef(false)
 
     const normalizedOptions = useMemo(() => {
         const sourceOptions = Array.isArray(options) ? options : []
@@ -240,6 +239,43 @@ export default function Course_Selection(props: Course_SelectionProps) {
         )
     }, [normalizedOptions, selectedValue])
 
+    useEffect(() => {
+        if (hasRestoredCourseSelectionRef.current) return
+
+        let isCurrent = true
+        void readPersistedCourseSelection()
+            .then((savedSelection) => {
+                if (!isCurrent) return
+                if (!savedSelection) {
+                    hasRestoredCourseSelectionRef.current = true
+                    return
+                }
+                const option = normalizedOptions.find(
+                    (item) => item.value === savedSelection.value
+                )
+                if (!option) return
+
+                hasRestoredCourseSelectionRef.current = true
+                startTransition(() => {
+                    setSelectedValue(option.value)
+                    setQuery(option.name)
+                })
+            })
+            .catch((error: unknown) => {
+                if (!isCurrent) return
+                hasRestoredCourseSelectionRef.current = true
+                setPersistenceError(
+                    error instanceof Error
+                        ? error.message
+                        : "Could not load saved course selection."
+                )
+            })
+
+        return () => {
+            isCurrent = false
+        }
+    }, [normalizedOptions])
+
     const activeInterests = useMemo(() => {
         if (!surveyData?.completed) return []
         return surveyData.interests
@@ -293,37 +329,6 @@ export default function Course_Selection(props: Course_SelectionProps) {
     useEffect(() => {
         if (typeof window === "undefined") return
 
-        const readFromStorage = (): SurveyPrototypeStoredData | null => {
-            try {
-                const raw = window.localStorage.getItem(SURVEY_STORAGE_KEY)
-                if (!raw) return null
-                const parsed: unknown = JSON.parse(raw)
-                return isValidSurveyData(parsed) ? parsed : null
-            } catch (_error) {
-                return null
-            }
-        }
-
-        startTransition(() => {
-            setSurveyData(readFromStorage())
-        })
-
-        const handleStorage = (event: StorageEvent) => {
-            if (event.key !== SURVEY_STORAGE_KEY) return
-            if (!event.newValue) {
-                startTransition(() => setSurveyData(null))
-                return
-            }
-            try {
-                const parsed: unknown = JSON.parse(event.newValue)
-                startTransition(() =>
-                    setSurveyData(isValidSurveyData(parsed) ? parsed : null)
-                )
-            } catch (_error) {
-                startTransition(() => setSurveyData(null))
-            }
-        }
-
         const handlePrototypeEvent = (event: Event) => {
             const custom = event as CustomEvent<SurveyPrototypeUpdatedDetail>
             const payload = custom.detail?.data
@@ -339,24 +344,29 @@ export default function Course_Selection(props: Course_SelectionProps) {
                 })
                 return
             }
-            startTransition(() => {
-                setSurveyData(readFromStorage())
+            void readPersistedSurvey().then((data) => {
+                startTransition(() => setSurveyData(data))
             })
         }
 
-        window.addEventListener("storage", handleStorage)
         window.addEventListener(
             "surveyPrototypeUpdated",
             handlePrototypeEvent as EventListener
         )
 
         return () => {
-            window.removeEventListener("storage", handleStorage)
             window.removeEventListener(
                 "surveyPrototypeUpdated",
                 handlePrototypeEvent as EventListener
             )
         }
+    }, [])
+
+    useEffect(() => {
+        if (typeof window === "undefined") return
+        void readPersistedSurvey().then((data) => {
+            startTransition(() => setSurveyData(data))
+        })
     }, [])
 
     useEffect(() => {
@@ -406,34 +416,57 @@ export default function Course_Selection(props: Course_SelectionProps) {
         (option: CourseOption | null) => {
             if (typeof window === "undefined") return
             if (!option) {
-                try {
-                    window.localStorage.removeItem(COURSE_SELECTION_STORAGE_KEY)
-                } catch (_error) {}
-                window.dispatchEvent(
-                    new CustomEvent("courseSelectionUpdated", {
-                        detail: { data: null },
+                void clearPersistedCourseSelection()
+                    .then(() => {
+                        setPersistenceError("")
+                        window.dispatchEvent(
+                            new CustomEvent("courseSelectionUpdated", {
+                                detail: { data: null },
+                            })
+                        )
                     })
-                )
+                    .catch((error: unknown) => {
+                        setPersistenceError(
+                            error instanceof Error
+                                ? error.message
+                                : "Could not clear saved course selection."
+                        )
+                    })
                 return
             }
 
-            const payload: CourseSelectionStoredData = {
-                version: COURSE_SELECTION_STORAGE_VERSION,
+            const payload: CourseSelectionData = {
+                version: 1,
                 value: option.value,
                 name: option.name,
                 category: option.category,
             }
-            try {
-                window.localStorage.setItem(
-                    COURSE_SELECTION_STORAGE_KEY,
-                    JSON.stringify(payload)
-                )
-            } catch (_error) {}
-            window.dispatchEvent(
-                new CustomEvent("courseSelectionUpdated", {
-                    detail: { data: payload },
+            void saveCourseSelection(payload)
+                .then(() => {
+                    setPersistenceError("")
+                    window.dispatchEvent(
+                        new CustomEvent("courseSelectionUpdated", {
+                            detail: { data: payload },
+                        })
+                    )
                 })
-            )
+                .catch((error: unknown) => {
+                    setPersistenceError(
+                        error instanceof Error
+                            ? error.message
+                            : "Could not save course selection."
+                    )
+                    window.dispatchEvent(
+                        new CustomEvent("courseSelectionPersistenceError", {
+                            detail: {
+                                message:
+                                    error instanceof Error
+                                        ? error.message
+                                        : "Could not save course selection.",
+                            },
+                        })
+                    )
+                })
         },
         []
     )
@@ -833,6 +866,22 @@ export default function Course_Selection(props: Course_SelectionProps) {
                 <strong>{selectedLabel}</strong>{" "}
                 {selectedOption ? selectedOption.name : selectPromptLabel}
             </div>
+            <p
+                style={{
+                    margin: 0,
+                    color: textColor,
+                    opacity: 0.72,
+                    fontSize: "0.85em",
+                }}
+            >
+                Your selected course is saved in this browser and restored
+                when you return.
+            </p>
+            {persistenceError ? (
+                <p role="alert" style={{ margin: 0, color: "#b42318" }}>
+                    {persistenceError}
+                </p>
+            ) : null}
         </div>
     )
 }
