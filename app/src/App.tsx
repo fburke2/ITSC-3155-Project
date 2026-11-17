@@ -4,6 +4,7 @@ import Course_Selection from "../../Course_Selection"
 import CourseInformation from "../../CourseInformation"
 import ClassInformation from "../../ClassInformation"
 import "./App.css"
+import CertificationAdvisor from "../../CertificationAdvisor"
 
 type AppPage = "survey" | "courses" | "class-information"
 
