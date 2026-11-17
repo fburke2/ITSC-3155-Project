@@ -3,12 +3,18 @@ import Survey from "../../Survey"
 import Course_Selection from "../../Course_Selection"
 import CourseInformation from "../../CourseInformation"
 import ClassInformation from "../../ClassInformation"
+import CertificationAdvisor from "../../CertificationAdvisor"
 import "./App.css"
 
-type AppPage = "survey" | "courses" | "class-information"
+type AppPage = "survey" | "courses" | "class-information" | "certifications"
 
 function getPageFromHash(): AppPage {
-  if (window.location.hash === "#class-information") return "class-information"
+  if (window.location.hash === "#class-information") 
+    return "class-information"
+
+  if (window.location.hash === "#certifications")
+    return "certifications"
+  
   return window.location.hash === "#courses" ? "courses" : "survey"
 }
 
@@ -48,6 +54,12 @@ function App() {
             aria-current={page === "class-information" ? "page" : undefined}
           >
             Class Information
+          </a>  
+          <a
+            href="#certifications"
+            aria-current={page === "certifications" ? "page" : undefined}
+          >
+            Certifications
           </a>
         </nav>
       </header>
@@ -71,6 +83,8 @@ function App() {
             <Course_Selection />
             <CourseInformation />
           </section>
+        ) : page === "certifcations" ? (
+          <CertificationAdvisor />
         ) : (
           <ClassInformation />
         )}
