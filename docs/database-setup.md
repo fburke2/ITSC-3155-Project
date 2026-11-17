@@ -1,7 +1,7 @@
 # Amazon RDS database setup
 
 This project uses Prisma with MySQL. The committed schema is
-[`prisma/schema.prisma`](../prisma/schema.prisma), and the Prisma commands are
+[`app/prisma/schema.prisma`](../app/prisma/schema.prisma), and the Prisma commands are
 defined in [`app/package.json`](../app/package.json).
 
 ## 1. Create the RDS instance
@@ -99,9 +99,14 @@ npm run dev
 
 ## 4. Verify a database operation
 
-The current React prototype stores survey and course-selection state in browser
-`localStorage`; it does not yet call Prisma from an application API. The
-following verifies the RDS connection, committed schema, and database
+The main survey and course selection store state in browser `localStorage`.
+Degree Survey submissions are also stored in browser `localStorage`; when the
+API and MySQL database are available, they are additionally saved in the
+`DegreeSurvey` and `DegreeSurveyClass` tables through `/api/degree-surveys`.
+Start the API with `npm run api` from `app`, or use `run-app.cmd` from the
+repository root to start the API and Vite together.
+
+The following SQL statements verify the account tables' RDS connection and
 read/write operations directly. Do not use a real person's email or password
 for this test.
 

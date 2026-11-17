@@ -46,6 +46,11 @@
   margin: 0 auto;
 }
 
+.app-page-degree-survey {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
 .course-page {
   display: grid;
   gap: 16px;

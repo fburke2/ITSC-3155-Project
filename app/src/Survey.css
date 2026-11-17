@@ -69,6 +69,18 @@
   font: inherit;
 }
 
+.survey-field textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 8px 10px;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #000000;
+  font: inherit;
+  resize: vertical;
+}
+
 .survey-follow-up {
   padding: 12px;
   border: 1px solid #eeeeee;
@@ -132,6 +144,11 @@
   cursor: pointer;
 }
 
+.survey-primary:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
 .survey-primary {
   background: #000000;
   color: #ffffff;
@@ -142,11 +159,58 @@
   color: #000000;
 }
 
+.survey-link-button,
+.survey-next-step-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
 .survey-error {
   min-height: 18px;
   margin: 0;
   color: #a32121;
   font-size: 13px;
+}
+
+.survey-success {
+  min-height: 18px;
+  margin: 0;
+  color: #276738;
+  font-size: 13px;
+}
+
+.survey-warning {
+  min-height: 18px;
+  margin: 0;
+  color: #805b00;
+  font-size: 13px;
+}
+
+.degree-classes {
+  display: grid;
+  gap: 10px;
+}
+
+.degree-classes h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.degree-class-entry {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+}
+
+.degree-class-entry legend {
+  padding: 0 4px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .survey-tags {

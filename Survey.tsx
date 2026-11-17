@@ -403,6 +403,11 @@ export default function Survey({ onComplete }: SurveyProps) {
             </div>
           </div>
         ) : null}
+        {hasDegree === true ? (
+          <a className="survey-primary survey-next-step-link" href="#degree-survey">
+            Continue to the degree survey
+          </a>
+        ) : null}
     </section>
   )
 }

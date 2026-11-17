@@ -66,7 +66,22 @@ describe("Survey", () => {
     await act(async () => {})
 
     selectOption("What is your degree goal?", "Choose or refine my major")
+    assert.equal(
+      screen.queryByRole("link", { name: "Continue to the degree survey" }),
+      null
+    )
+    fireEvent.click(screen.getByLabelText("No"))
+    assert.equal(
+      screen.queryByRole("link", { name: "Continue to the degree survey" }),
+      null
+    )
     fireEvent.click(screen.getByLabelText("Yes"))
+    assert.equal(
+      screen.getByRole("link", { name: "Continue to the degree survey" }).getAttribute(
+        "href"
+      ),
+      "#degree-survey"
+    )
     chooseInterest("Software development")
 
     const salarySelect = screen.getByLabelText(
@@ -337,5 +352,151 @@ describe("Application navigation", () => {
     })
     assert.ok(screen.getByText("Recommended for you"))
     assert.ok(await screen.findByText("Game Development Fundamentals"))
+  })
+
+  it("opens the degree survey from its conditional survey link", async () => {
+    window.location.hash = "#survey"
+    render(React.createElement(App))
+    await act(async () => {})
+
+    assert.equal(
+      screen.getByRole("link", { name: "Degree Survey" }).getAttribute("href"),
+      "#degree-survey"
+    )
+    fireEvent.click(screen.getByLabelText("Yes"))
+    fireEvent.click(
+      screen.getByRole("link", { name: "Continue to the degree survey" })
+    )
+
+    await waitFor(() => {
+      assert.ok(screen.getByRole("heading", { name: "Degree survey" }))
+    })
+    assert.ok(
+      screen.getByRole("link", { name: "Back to the main survey" })
+    )
+  })
+
+  it("opens the degree survey from the top navigation tab", async () => {
+    window.location.hash = "#survey"
+    render(React.createElement(App))
+
+    fireEvent.click(screen.getByRole("link", { name: "Degree Survey" }))
+
+    await waitFor(() => {
+      assert.ok(screen.getByRole("heading", { name: "Degree survey" }))
+    })
+  })
+
+  it("saves school, degree, and repeatable class details", async () => {
+    window.location.hash = "#degree-survey"
+    render(React.createElement(App))
+
+    const originalFetch = globalThis.fetch
+    let requestUrl
+    let requestOptions
+    globalThis.fetch = async (url, options) => {
+      requestUrl = url
+      requestOptions = options
+      return {
+        ok: true,
+        json: async () => ({ id: 12 }),
+      }
+    }
+
+    fireEvent.change(screen.getByLabelText("What school did you attend?"), {
+      target: { value: "Charlotte University" },
+    })
+    fireEvent.change(screen.getByLabelText("What degree have you earned?"), {
+      target: { value: "Bachelor's degree" },
+    })
+    fireEvent.change(screen.getAllByLabelText("Class name")[0], {
+      target: { value: "Intro to Programming" },
+    })
+    fireEvent.change(screen.getByLabelText("Credits earned"), {
+      target: { value: "3" },
+    })
+    fireEvent.change(screen.getByLabelText("Class description"), {
+      target: { value: "Programming fundamentals" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Add another class" }))
+    fireEvent.change(screen.getAllByLabelText("Class name")[1], {
+      target: { value: "Data Structures" },
+    })
+    fireEvent.change(screen.getAllByLabelText("Credits earned")[1], {
+      target: { value: "4" },
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "Save degree details" }))
+
+    try {
+      await waitFor(() => {
+        assert.ok(
+          screen.getByText("Saved in this browser and the SQL database.")
+        )
+      })
+      assert.equal(requestUrl, "/api/degree-surveys")
+      assert.equal(requestOptions.method, "POST")
+      assert.deepEqual(JSON.parse(requestOptions.body), {
+        school: "Charlotte University",
+        degree: "Bachelor's degree",
+        classes: [
+          {
+            name: "Intro to Programming",
+            credits: 3,
+            description: "Programming fundamentals",
+          },
+          { name: "Data Structures", credits: 4, description: "" },
+        ],
+      })
+      const locallySaved = JSON.parse(
+        window.localStorage.getItem("degreeSurvey.v1") ?? "null"
+      )
+      assert.equal(locallySaved.school, "Charlotte University")
+      assert.equal(locallySaved.classes.length, 2)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it("keeps degree survey responses locally when the SQL API is unavailable", async () => {
+    window.location.hash = "#degree-survey"
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () => {
+      throw new Error("Failed to fetch")
+    }
+
+    try {
+      render(React.createElement(App))
+      fireEvent.change(screen.getByLabelText("What school did you attend?"), {
+        target: { value: "Local University" },
+      })
+      fireEvent.change(screen.getByLabelText("What degree have you earned?"), {
+        target: { value: "Associate degree" },
+      })
+      fireEvent.change(screen.getByLabelText("Class name"), {
+        target: { value: "Writing" },
+      })
+      fireEvent.change(screen.getByLabelText("Credits earned"), {
+        target: { value: "3" },
+      })
+      fireEvent.click(
+        screen.getByRole("button", { name: "Save degree details" })
+      )
+
+      await waitFor(() => {
+        assert.ok(screen.getByText("Saved in this browser."))
+        assert.ok(screen.getByText("SQL sync failed: Failed to fetch"))
+      })
+
+      cleanup()
+      render(React.createElement(App))
+      assert.equal(
+        screen.getByLabelText("What school did you attend?").value,
+        "Local University"
+      )
+      assert.equal(screen.getByLabelText("Class name").value, "Writing")
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   })
 })

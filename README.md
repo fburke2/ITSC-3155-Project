@@ -2,7 +2,7 @@
 
 ## Application
 
-A React and TypeScript course-selection prototype for students. Students can use separate Survey and Course Selection pages, set a degree goal and areas of interest, receive course recommendations, search and filter the sample course list, and view illustrative program-path information for a selected course. Survey responses are stored in the current browser for demonstration purposes.
+A React and TypeScript course-selection prototype for students. Students can use the Survey, Course Selection, and Degree Survey pages, set a degree goal and areas of interest, receive course recommendations, search and filter the sample course list, and view illustrative program-path information for a selected course. The main survey and course selection are stored in the current browser; degree survey submissions are always saved in the browser and also sent to MySQL when it is configured.
 
 Course credits, semesters, and salary figures are sample estimates only. They are not verified degree requirements or salary averages.
 
@@ -19,22 +19,35 @@ npm ci
 
 ## Run Locally
 
-From the `app` directory, start the Vite development server:
+Configure `app/.env` with a MySQL `DATABASE_URL`, then apply the database
+migrations from the `app` directory:
+
+```powershell
+npm run db:generate
+npm run db:deploy
+```
+
+Start the API and Vite development server from separate terminals:
 
 ```powershell
 npm run dev
 ```
 
+```powershell
+npm run api
+```
+
 Open the local URL printed by Vite, usually `http://localhost:5173/`.
 
-On Windows, you can also run `run-app.cmd` from the repository root. It installs dependencies if needed and starts the app.
+On Windows, you can also run `run-app.cmd` from the repository root. It installs dependencies if needed and starts the API and app.
 
 ## Implemented Features
 
 - Survey for a degree goal and one or more areas of interest, with edit and reset actions.
 - Graduate planning and certification follow-up prompts for degree type, with salary asked only when the user has a degree.
 - Degree status question with a salary range follow-up for users who already have a degree; submitting the survey opens Course Selection.
-- Navigation between the Survey and Course Selection pages, including direct links and browser back/forward navigation.
+- Degree Survey tab for recording a school, degree, and multiple classes, credits, and descriptions in browser storage, with optional MySQL sync.
+- Navigation between the Survey, Course Selection, Degree Survey, and Class Information pages, including direct links and browser back/forward navigation.
 - Course recommendations based on survey interests.
 - Course category filtering, case-insensitive search, and keyboard-accessible selection.
 - Course information panel with a prominent sample annual salary, credits, semesters, and a link to Class Information when available.
@@ -43,10 +56,9 @@ On Windows, you can also run `run-app.cmd` from the repository root. It installs
 ## Persistence Design
 
 The MySQL persistence design for issue #11 is defined in
-[`prisma/schema.prisma`](prisma/schema.prisma), with the initial migration in
-[`prisma/migrations/20261105110000_initial_persistence/migration.sql`](prisma/migrations/20261105110000_initial_persistence/migration.sql).
-It models accounts, survey responses and interests, the course catalogue, and
-saved course selections.
+[`app/prisma/schema.prisma`](app/prisma/schema.prisma). In addition to accounts,
+survey responses, interests, courses, and selections, it stores degree surveys
+and their class details. Apply migrations with `npm run db:deploy` from `app`.
 
 The PlantUML sources and rendered diagrams are available in
 [`docs/uml/`](docs/uml/):

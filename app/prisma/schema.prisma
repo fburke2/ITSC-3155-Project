@@ -70,3 +70,22 @@ model CourseSelection {
 
   @@index([courseId])
 }
+
+model DegreeSurvey {
+  id         Int                 @id @default(autoincrement())
+  school     String              @db.VarChar(255)
+  degree     String              @db.VarChar(255)
+  createdAt  DateTime            @default(now())
+  classes    DegreeSurveyClass[]
+}
+
+model DegreeSurveyClass {
+  id             Int          @id @default(autoincrement())
+  degreeSurveyId Int
+  name           String       @db.VarChar(255)
+  credits        Decimal      @db.Decimal(5, 1)
+  description    String?      @db.Text
+  degreeSurvey   DegreeSurvey @relation(fields: [degreeSurveyId], references: [id], onDelete: Cascade)
+
+  @@index([degreeSurveyId])
+}
