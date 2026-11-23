@@ -25,7 +25,12 @@ migrations from the `app` directory:
 ```powershell
 npm run db:generate
 npm run db:deploy
+npm run db:seed
 ```
+
+The seed command creates the presentation account
+`demo@courseexplorer.local` with password `Presentation1!`. Passwords are
+stored as scrypt hashes; demo credentials are intended for local presentation use.
 
 Start the API and Vite development server from separate terminals:
 
@@ -43,6 +48,8 @@ On Windows, you can also run `run-app.cmd` from the repository root. It installs
 
 ## Implemented Features
 
+- Secure database-backed login and account creation, with scrypt password hashes and presentation demo credentials.
+- Database-free presentation login: a salted PBKDF2 demo account and newly created accounts remain in browser storage until MySQL is configured.
 - Survey for a degree goal and one or more areas of interest, with edit and reset actions.
 - Graduate planning and certification follow-up prompts for degree type, with salary asked only when the user has a degree.
 - Degree status question with a salary range follow-up for users who already have a degree; submitting the survey opens Course Selection.

@@ -41,6 +41,89 @@
   color: #ffffff;
 }
 
+.app-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #555555;
+  font-size: 13px;
+}
+
+.app-user-actions button {
+  padding: 8px 10px;
+  border: 1px solid #bbbbbb;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #000000;
+  font: inherit;
+  cursor: pointer;
+}
+
+.delete-account-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 35%);
+}
+
+.delete-account-dialog form {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.delete-account-dialog h2,
+.delete-account-dialog p {
+  margin: 0;
+}
+
+.delete-account-dialog input {
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid #bbbbbb;
+  border-radius: 7px;
+  font: inherit;
+}
+
+.delete-account-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.delete-account-actions button,
+.app-user-actions button {
+  min-height: 36px;
+}
+
+.delete-account-actions button:first-child {
+  border: 0;
+  border-radius: 7px;
+  background: #8a1717;
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.delete-account-actions button:last-child {
+  border: 1px solid #bbbbbb;
+  border-radius: 7px;
+  background: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.delete-account-error {
+  color: #8a1717;
+}
+
 .app-page-survey {
   max-width: 720px;
   margin: 0 auto;

@@ -7,7 +7,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react"
-import { after, afterEach, before, describe, it } from "mocha"
+import { after, afterEach, before, beforeEach, describe, it } from "mocha"
 import { createServer } from "vite"
 
 const COURSE_SELECTION_KEY = "courseSelection.v1"
@@ -17,6 +17,7 @@ let ClassInformation
 let CourseInformation
 let Course_Selection
 let Survey
+let Auth
 let vite
 
 before(async () => {
@@ -25,7 +26,7 @@ before(async () => {
     server: { middlewareMode: true },
     appType: "custom",
   })
-  const [reactModule, appModule, classInfoModule, courseInfoModule, courseSelectionModule, surveyModule] =
+  const [reactModule, appModule, classInfoModule, courseInfoModule, courseSelectionModule, surveyModule, authModule] =
     await Promise.all([
       import("react"),
       vite.ssrLoadModule("/src/App.tsx"),
@@ -33,6 +34,7 @@ before(async () => {
       vite.ssrLoadModule("/../CourseInformation.tsx"),
       vite.ssrLoadModule("/../Course_Selection.tsx"),
       vite.ssrLoadModule("/../Survey.tsx"),
+      vite.ssrLoadModule("/src/Auth.tsx"),
     ])
   React = reactModule.default
   App = appModule.default
@@ -40,6 +42,7 @@ before(async () => {
   CourseInformation = courseInfoModule.default
   Course_Selection = courseSelectionModule.default
   Survey = surveyModule.default
+  Auth = authModule.default
 })
 
 after(async () => {
@@ -52,6 +55,13 @@ afterEach(() => {
   window.history.replaceState(null, "", "/")
 })
 
+beforeEach(() => {
+  window.localStorage.setItem(
+    "courseExplorer.auth.v1",
+    JSON.stringify({ id: 1, email: "demo@courseexplorer.local" })
+  )
+})
+
 function selectOption(label, value) {
   fireEvent.change(screen.getByLabelText(label), { target: { value } })
 }
@@ -59,6 +69,55 @@ function selectOption(label, value) {
 function chooseInterest(label) {
   fireEvent.click(screen.getByLabelText(label))
 }
+
+describe("Authentication", () => {
+  it("reports invalid credentials from the login API", async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () => ({
+      ok: false,
+      status: 401,
+      text: async () =>
+        JSON.stringify({ error: "Invalid email or password." }),
+    })
+
+    try {
+      render(React.createElement(Auth, { onAuthenticated: () => {} }))
+      fireEvent.change(screen.getByLabelText("Email"), {
+        target: { value: "missing@example.com" },
+      })
+      fireEvent.change(screen.getByLabelText("Password"), {
+        target: { value: "wrongpassword" },
+      })
+      fireEvent.click(screen.getByRole("button", { name: "Sign in" }))
+
+      assert.ok(await screen.findByRole("alert"))
+      assert.ok(screen.getByText("Invalid email or password."))
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it("validates matching passwords during account creation", async () => {
+    render(React.createElement(Auth, { onAuthenticated: () => {} }))
+    fireEvent.click(
+      screen.getByRole("button", { name: "Need an account? Create one" })
+    )
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "student@example.com" },
+    })
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "StrongPassword1!" },
+    })
+    fireEvent.change(screen.getByLabelText("Confirm password"), {
+      target: { value: "DifferentPassword1!" },
+    })
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create account" })
+    )
+
+    assert.ok(screen.getByText("Passwords do not match."))
+  })
+})
 
 describe("Survey", () => {
   it("shows a salary range only for users with a degree and saves the answers", async () => {

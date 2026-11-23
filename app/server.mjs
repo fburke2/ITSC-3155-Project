@@ -1,5 +1,6 @@
 import "dotenv/config"
 import { createServer } from "node:http"
+import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto"
 import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
@@ -112,43 +113,144 @@ function requireTextOrEmpty(value, field, maxLength) {
   return value.trim()
 }
 
-const server = createServer(async (request, response) => {
-  const url = new URL(request.url ?? "/", "http://localhost")
-  if (url.pathname !== "/api/degree-surveys") {
-    sendJson(response, 404, { error: "Not found." })
-    return
+function requireEmail(value) {
+  if (typeof value !== "string") {
+    throw new RequestError(400, "Email is required.")
   }
-  if (request.method !== "POST") {
-    response.setHeader("allow", "POST")
-    sendJson(response, 405, { error: "Method not allowed." })
-    return
+  const email = value.trim().toLowerCase()
+  if (email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new RequestError(400, "Enter a valid email address.")
+  }
+  return email
+}
+
+function requirePassword(value) {
+  if (typeof value !== "string" || value.length < 8 || value.length > 128) {
+    throw new RequestError(
+      400,
+      "Password must be at least 8 characters and no more than 128 characters."
+    )
+  }
+  return value
+}
+
+export function hashPassword(password) {
+  const salt = randomBytes(16).toString("base64")
+  const derivedKey = scryptSync(password, salt, 64)
+  return `scrypt$16384$8$1$${salt}$${derivedKey.toString("base64")}`
+}
+
+export function verifyPassword(password, storedHash) {
+  try {
+    const [algorithm, n, r, p, salt, hash] = storedHash.split("$")
+    if (algorithm !== "scrypt" || !salt || !hash) return false
+    const derivedKey = scryptSync(password, salt, 64, {
+      N: Number(n),
+      r: Number(r),
+      p: Number(p),
+    })
+    const suppliedKey = Buffer.from(hash, "base64")
+    return (
+      suppliedKey.length === derivedKey.length &&
+      timingSafeEqual(suppliedKey, derivedKey)
+    )
+  } catch {
+    return false
+  }
+}
+
+async function handleAuth(request, response, url) {
+  if (!["POST", "DELETE"].includes(request.method)) {
+    response.setHeader("allow", "POST, DELETE")
+    throw new RequestError(405, "Method not allowed.")
   }
   if (!request.headers["content-type"]?.includes("application/json")) {
-    sendJson(response, 415, { error: "Content-Type must be application/json." })
+    throw new RequestError(415, "Content-Type must be application/json.")
+  }
+  if (!process.env.DATABASE_URL) {
+    throw new RequestError(
+      503,
+      "Database is not configured. Set DATABASE_URL in app/.env and restart the API."
+    )
+  }
+
+  const body = await readJsonBody(request)
+  const email = requireEmail(body.email)
+
+  if (url.pathname === "/api/auth/register") {
+    const password = requirePassword(body.password)
+    await prisma.$connect()
+
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (existing) {
+      throw new RequestError(409, "An account with this email already exists.")
+    }
+
+    const user = await prisma.user.create({
+      data: { email, passwordHash: hashPassword(password) },
+      select: { id: true, email: true },
+    })
+    sendJson(response, 201, user)
     return
   }
 
-  let data
+  if (url.pathname === "/api/auth/login") {
+    const password = requirePassword(body.password)
+    await prisma.$connect()
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user || !verifyPassword(password, user.passwordHash)) {
+      throw new RequestError(401, "Invalid email or password.")
+    }
+    sendJson(response, 200, { id: user.id, email: user.email })
+    return
+  }
+
+  if (url.pathname === "/api/auth/account" && request.method === "DELETE") {
+    const password = requirePassword(body.password)
+    await prisma.$connect()
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user || !verifyPassword(password, user.passwordHash)) {
+      throw new RequestError(401, "Incorrect password.")
+    }
+    await prisma.user.delete({ where: { id: user.id } })
+    sendJson(response, 200, { deleted: true })
+    return
+  }
+
+  throw new RequestError(404, "Not found.")
+}
+
+const server = createServer(async (request, response) => {
+  const url = new URL(request.url ?? "/", "http://localhost")
   try {
-    data = parseDegreeSurvey(await readJsonBody(request))
-  } catch (error) {
-    if (error instanceof RequestError) {
-      sendJson(response, error.status, { error: error.message })
+    if (
+      url.pathname === "/api/auth/login" ||
+      url.pathname === "/api/auth/register" ||
+      url.pathname === "/api/auth/account"
+    ) {
+      await handleAuth(request, response, url)
       return
     }
-    console.error("Could not read degree survey request:", error)
-    sendJson(response, 400, { error: "Could not read degree survey request." })
-    return
-  }
 
-  if (!process.env.DATABASE_URL) {
-    sendJson(response, 503, {
-      error: "Database is not configured. Set DATABASE_URL in app/.env and restart the API.",
-    })
-    return
-  }
+    if (url.pathname !== "/api/degree-surveys") {
+      throw new RequestError(404, "Not found.")
+    }
+    if (request.method !== "POST") {
+      response.setHeader("allow", "POST")
+      throw new RequestError(405, "Method not allowed.")
+    }
+    if (!request.headers["content-type"]?.includes("application/json")) {
+      throw new RequestError(415, "Content-Type must be application/json.")
+    }
 
-  try {
+    const data = parseDegreeSurvey(await readJsonBody(request))
+    if (!process.env.DATABASE_URL) {
+      throw new RequestError(
+        503,
+        "Database is not configured. Set DATABASE_URL in app/.env and restart the API."
+      )
+    }
+
     await prisma.$connect()
     const savedSurvey = await prisma.degreeSurvey.create({
       data: {
@@ -166,7 +268,17 @@ const server = createServer(async (request, response) => {
     })
     sendJson(response, 201, { id: savedSurvey.id })
   } catch (error) {
-    console.error("Could not save degree survey to SQL:", error)
+    if (error instanceof RequestError) {
+      sendJson(response, error.status, { error: error.message })
+      return
+    }
+    console.error("Database or request operation failed:", error)
+    if (url.pathname.startsWith("/api/auth/")) {
+      sendJson(response, 503, {
+        error: "Database unavailable or not migrated. Check DATABASE_URL and run npm run db:deploy.",
+      })
+      return
+    }
     sendJson(response, 503, {
       error:
         "Database unavailable or not migrated. Check DATABASE_URL and run npm run db:deploy.",
